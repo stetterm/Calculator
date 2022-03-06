@@ -44,11 +44,11 @@ pub mod expression {
     }
 
     #[derive(Debug, Clone)]
-    pub struct ParenthesesError;
+    pub struct UnbalancedParentheses;
     #[derive(Debug, Clone)]
     pub struct InvalidToken;
 
-    impl std::fmt::Display for ParenthesesError {
+    impl std::fmt::Display for UnbalancedParentheses {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
             write!(f, "Invalid use of parentheses")
         }
@@ -60,7 +60,7 @@ pub mod expression {
         }
     }
 
-    impl std::error::Error for ParenthesesError {}
+    impl std::error::Error for UnbalancedParentheses {}
 
     impl std::error::Error for InvalidToken {}
 
@@ -133,7 +133,7 @@ pub mod expression {
                             par.push(cpy[i]);
                         }
                         if x != 0 {
-                            return Err(Box::new(ParenthesesError));
+                            return Err(Box::new(UnbalancedParentheses));
                         }
                         let paren_expr = Expression::parse(&par[1..i])?;
                         let paren_expr = paren_expr.solve();
