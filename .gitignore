@@ -1,0 +1,4 @@
+/target
+
+# Do not track Cargo lock file
+*.lock
