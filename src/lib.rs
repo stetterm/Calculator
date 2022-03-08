@@ -115,8 +115,8 @@ pub mod expression {
                     }),
                     None => if cur_token.is_numeric() {
                         let mut str_val = String::new();
-                        str_val += &cur_token.to_string();
                         while i < cpy.len() && cpy[i].is_numeric() {
+                            str_val += &cpy[i].to_string();
                             i += 1;
                         }
                         let val: f64 = str_val.parse()?;
@@ -169,7 +169,7 @@ pub mod expression {
                             right: Some(Box::new(expr_list.remove(i).clone())),
                         };
                         expr_list.remove(i-1);
-                        expr_list.insert(0, new_expr);
+                        expr_list.insert(i-1, new_expr);
                     }
                 } else {
                     i += 1;
@@ -240,5 +240,17 @@ mod tests {
     fn test_output_2() {
         let x = Expression::parse("2 * (3/6 + 5) * 7 - (1 * 5 + (1-3))").unwrap();
         assert_eq!(74., x.solve());
+    }
+
+    #[test]
+    fn test_output_3() {
+        let x = Expression::parse("2 * (3 * 5 + 6 * (1 - 4 * 6 + 5) - 16 * 4) * 13").unwrap();
+        assert_eq!(-4082., x.solve());
+    }
+
+    #[test]
+    fn test_output_4() {
+        let x = Expression::parse("13 - 5 * 6 * ((2 + 5 - 15 / 23) / 10 - 6)").unwrap();
+        assert_eq!(173.95652173913044, x.solve());
     }
 }
