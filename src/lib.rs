@@ -11,6 +11,7 @@ pub mod expression {
     /// mathematical operators currently
     /// supported by the expression evaluator.
     /// 
+    #[derive(Debug, Clone, PartialEq)]
     pub enum Operator {
         Addition,
         Subtraction,
@@ -37,6 +38,7 @@ pub mod expression {
     /// Represents an expression that has an infix
     /// operator and two expressions to evaluate.
     /// 
+    #[derive(Debug, Clone)]
     pub struct Expression {
         pub operator: Operator,
         pub left: Option<Box<Expression>>,
@@ -94,12 +96,16 @@ pub mod expression {
         }
         
         pub fn parse(tokens: &str) -> Result<Expression, Box<dyn std::error::Error>> {
+            // filter token characters into expressions
             let mut expr_list: Vec<Expression> = vec![];
             let cpy = tokens.chars()
                 .filter(|c| *c != ' ')
                 .collect::<Vec<char>>();
             let mut i = 0;
             loop {
+                if i > cpy.len() - 1 {
+                    break;
+                }
                 let cur_token = cpy[i];
                 match get_operator(cur_token) {
                     Some(o) => expr_list.push(Expression {
@@ -108,10 +114,9 @@ pub mod expression {
                         right: None,
                     }),
                     None => if cur_token.is_numeric() {
-                        let temp = i;
                         let mut str_val = String::new();
                         str_val += &cur_token.to_string();
-                        while cpy[temp].is_numeric() && i < cpy.len() {
+                        while i < cpy.len() && cpy[i].is_numeric() {
                             i += 1;
                         }
                         let val: f64 = str_val.parse()?;
@@ -120,6 +125,7 @@ pub mod expression {
                             left: None,
                             right: None, 
                         });
+                        i -= 1;
                     } else if cur_token == '(' {
                         let mut x = 1;
                         let mut par = String::new();
@@ -135,7 +141,7 @@ pub mod expression {
                         if x != 0 {
                             return Err(Box::new(UnbalancedParentheses));
                         }
-                        let paren_expr = Expression::parse(&par[1..i])?;
+                        let paren_expr = Expression::parse(&par[0..par.len()-1])?;
                         let paren_expr = paren_expr.solve();
                         expr_list.push(Expression {
                             operator: Operator::Value(paren_expr),
@@ -146,14 +152,45 @@ pub mod expression {
                         return Err(Box::new(InvalidToken));
                     },
                 }
-                if i == cpy.len() - 1 {
-                    break;
-                }
                 i += 1;
             }
-            
-
-            Ok(Expression { operator: Operator::Value(0.), left: None, right: None })
+            // loop for multiplication/division
+            let mut i = 0;
+            // let mut mult_pass: Vec<Expression> = Vec::with_capacity(expr_list.len());
+            loop {
+                if i >= expr_list.len() {
+                    break;
+                }
+                if expr_list[i].operator == Operator::Multiplication
+                    || expr_list[i].operator == Operator::Division {
+                    if i < expr_list.len()-1 {
+                        let new_expr = Expression {
+                            operator: expr_list[i].operator.clone(),
+                            left: Some(Box::new(expr_list.remove(i-1).clone())),
+                            right: Some(Box::new(expr_list.remove(i).clone())),
+                        };
+                        expr_list.remove(i-1);
+                        expr_list.insert(0, new_expr);
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            dbg!(&expr_list);
+            let mut expr_root = expr_list[0].clone();
+            let mut i = 1;
+            loop {
+                if i >= expr_list.len()-1 {
+                    break;
+                }
+                expr_root = Expression {
+                    operator: expr_list[i].operator.clone(),
+                    left: Some(Box::new(expr_root)),
+                    right: Some(Box::new(expr_list[i+1].clone())),
+                };
+                i += 2;
+            }
+            Ok(expr_root)
         }
     }
 }
@@ -198,8 +235,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_output() {
-        // Expression::parse("2 * (3+ 5) * 6");
-        let x: f64 = "55".parse().unwrap();
+        let x = Expression::parse("2 * (3+ 5) * 6").unwrap();
         dbg!(x);
     }
 }
