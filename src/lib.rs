@@ -156,7 +156,6 @@ pub mod expression {
             }
             // loop for multiplication/division
             let mut i = 0;
-            // let mut mult_pass: Vec<Expression> = Vec::with_capacity(expr_list.len());
             loop {
                 if i >= expr_list.len() {
                     break;
@@ -176,7 +175,6 @@ pub mod expression {
                     i += 1;
                 }
             }
-            dbg!(&expr_list);
             let mut expr_root = expr_list[0].clone();
             let mut i = 1;
             loop {
@@ -233,9 +231,14 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_output() {
         let x = Expression::parse("2 * (3+ 5) * 6").unwrap();
-        dbg!(x);
+        assert_eq!(96., x.solve());
+    }
+
+    #[test]
+    fn test_output_2() {
+        let x = Expression::parse("2 * (3/6 + 5) * 7 - (1 * 5 + (1-3))").unwrap();
+        assert_eq!(74., x.solve());
     }
 }
