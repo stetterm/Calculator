@@ -95,24 +95,98 @@ pub mod expression {
             }
         }
         
+        ///
+        /// Main function for parsing string mathematical
+        /// expressions into an Expression which has a method
+        /// "solve()" to return the numeric solution.
+        /// 
+        /// # Examples
+        /// ```
+        /// // Here we assert on the result of calling "solve"
+        /// // on the Expression returned from this mathematical
+        /// // string.
+        /// # use calculator::expression::Expression;
+        /// let x = Expression::parse("3 - 6 * 5 + (4 * 14 - 17) / 5").unwrap();
+        /// assert_eq!(-19.2, x.solve());
+        /// 
+        /// // Here is another example:
+        /// let x = Expression::parse("4 * 33 - 6 / 9 + (3 * (4 + 6) - 4)").unwrap();
+        /// assert_eq!(472./3., x.solve());
+        /// ```
+        /// 
+        /// # Errors
+        /// ```
+        /// // This function returns has the potential to return
+        /// // two different errors.
+        /// 
+        /// // The first of these errors is UnbalancedParentheses.
+        /// // The function cannot easily assume what the user wants
+        /// // when the parentheses are not matched, so it will return
+        /// // an error and not continue to parse if: a closing parenthesis
+        /// // character (")") comes before an opening parenthesis ("("),
+        /// // or if the number of opening and closing parentheses do not
+        /// // match (e.g. "(5 + 6 - (10)" ).
+        /// # use calculator::expression::{self, Expression};
+        /// let x = Expression::parse("(5 + 6 - (10)");
+        /// match x {
+        ///     Ok(e) => panic!(),
+        ///     Err(e) => assert_eq!("Invalid use of parentheses",
+        ///         format!("{}", e)
+        ///     ),
+        /// }
+        /// 
+        /// let x = Expression::parse(") 3 - 5 * 4");
+        /// match x {
+        ///     Ok(e) => panic!(),
+        ///     Err(e) => assert_eq!("Invalid use of parentheses",
+        ///         format!("{}", e)
+        ///     ),
+        /// }
+        /// ```
+        /// 
+        /// // The second of these two errors is InvalidToken.
+        /// // This error is returned if an unsupported character
+        /// // (i.e. any character that is not a paranthesis, number,
+        /// // decimal, or operator (+-*/)).
+        /// ```
+        /// # use calculator::expression::{self, Expression};
+        /// let x = Expression::parse("3 + & - @ * 5");
+        /// match x {
+        ///     Ok(e) => panic!(),
+        ///     Err(e) => assert_eq!("Invalid character in sequence",
+        ///         format!("{}", e)
+        ///     ),
+        /// }
+        /// ```
+        /// 
         pub fn parse(tokens: &str) -> Result<Expression, Box<dyn std::error::Error>> {
-            // filter token characters into expressions
+            
+            // filter out white spaces
             let mut expr_list: Vec<Expression> = vec![];
             let cpy = tokens.chars()
-                .filter(|c| *c != ' ')
+                .filter(|c| *c != ' ' && *c != '\n' && *c != '\r')
                 .collect::<Vec<char>>();
+
+            // loop through token characters and
+            // convert them into Expressions.
             let mut i = 0;
             loop {
                 if i > cpy.len() - 1 {
                     break;
                 }
                 let cur_token = cpy[i];
+
+                // If the character is an operator (+-*/),
+                // make an operator Expression.
                 match get_operator(cur_token) {
                     Some(o) => expr_list.push(Expression {
                         operator: o,
                         left: None,
                         right: None,
                     }),
+
+                // If not, check whether the character is numeric,
+                // and parse it into f64 if it is numeric.
                     None => if cur_token.is_numeric() {
                         let mut str_val = String::new();
                         while i < cpy.len() && cpy[i].is_numeric() {
@@ -126,21 +200,33 @@ pub mod expression {
                             right: None, 
                         });
                         i -= 1;
+
+                // If not, it must be an opening parethensis, or
+                // and invalid character, because closing parethenses
+                // cannot come before opening parentheses.
                     } else if cur_token == '(' {
                         let mut x = 1;
                         let mut par = String::new();
                         while x != 0 && i < cpy.len() {
                             i += 1;
-                            if cpy[i] == '(' {
-                                x += 1;
-                            } else if cpy[i] == ')' {
-                                x -= 1;
+                            if i < cpy.len() {
+                                if cpy[i] == '(' {
+                                    x += 1;
+                                } else if cpy[i] == ')' {
+                                    x -= 1;
+                                }
+                                par.push(cpy[i]);
                             }
-                            par.push(cpy[i]);
                         }
+
+                        // If an uneven amount of parentheses are found,
+                        // an error is returned.
                         if x != 0 {
                             return Err(Box::new(UnbalancedParentheses));
                         }
+
+                        // Otherwise, the characters inside the parentheses are
+                        // recursively parsed.
                         let paren_expr = Expression::parse(&par[0..par.len()-1])?;
                         let paren_expr = paren_expr.solve();
                         expr_list.push(Expression {
@@ -148,18 +234,32 @@ pub mod expression {
                             left: None,
                             right: None,
                         });
+
+                    // If closing parentheses come before opening
+                    // parentheses, an error is returned.
+                    } else if cur_token == ')' {
+                        return Err(Box::new(UnbalancedParentheses));
+                    
+                    // If an unsupported character is found, an
+                    // error is returned.
                     } else {
                         return Err(Box::new(InvalidToken));
                     },
                 }
                 i += 1;
             }
-            // loop for multiplication/division
+
+            // Loop for multiplication/division.
             let mut i = 0;
             loop {
                 if i >= expr_list.len() {
                     break;
                 }
+
+                // Condense all multiplication and division
+                // using surrounding numbers into their own
+                // Expressions, and replace the previously
+                // existing Expressions with the new Expression.
                 if expr_list[i].operator == Operator::Multiplication
                     || expr_list[i].operator == Operator::Division {
                     if i < expr_list.len()-1 {
@@ -175,9 +275,15 @@ pub mod expression {
                     i += 1;
                 }
             }
+
+            // Loop for addition/subtraction.
             let mut expr_root = expr_list[0].clone();
             let mut i = 1;
             loop {
+
+                // Use a "root" Expression to add itself into
+                // a new larger Expression containing more values, 
+                // until the list has been parsed into a single Expression.
                 if i >= expr_list.len()-1 {
                     break;
                 }
@@ -188,6 +294,7 @@ pub mod expression {
                 };
                 i += 2;
             }
+
             Ok(expr_root)
         }
     }
