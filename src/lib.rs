@@ -112,6 +112,10 @@ pub mod expression {
         /// // Here is another example:
         /// let x = Expression::parse("4 * 33 - 6 / 9 + (3 * (4 + 6) - 4)").unwrap();
         /// assert_eq!(472./3., x.solve());
+        /// 
+        /// // When an empty string is passed, 0 is returned:
+        /// let x = Expression::parse("").unwrap();
+        /// assert_eq!(0., x.solve());
         /// ```
         /// 
         /// # Errors
@@ -160,12 +164,21 @@ pub mod expression {
         /// ```
         /// 
         pub fn parse(tokens: &str) -> Result<Expression, Box<dyn std::error::Error>> {
-            
             // filter out white spaces
             let mut expr_list: Vec<Expression> = vec![];
             let cpy = tokens.chars()
                 .filter(|c| *c != ' ' && *c != '\n' && *c != '\r')
                 .collect::<Vec<char>>();
+
+            // If nothing is in the expression,
+            // a 0 value expression is returned.
+            if cpy.len() == 0 {
+                return Ok(Expression {
+                    operator: Operator::Value(0.),
+                    left: None,
+                    right: None,
+                });
+            }
 
             // loop through token characters and
             // convert them into Expressions.
