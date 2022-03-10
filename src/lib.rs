@@ -38,7 +38,7 @@ pub mod expression {
     /// Represents an expression that has an infix
     /// operator and two expressions to evaluate.
     /// 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct Expression {
         pub operator: Operator,
         pub left: Option<Box<Expression>>,
@@ -241,12 +241,7 @@ pub mod expression {
                         // Otherwise, the characters inside the parentheses are
                         // recursively parsed.
                         let paren_expr = Expression::parse(&par[0..par.len()-1])?;
-                        let paren_expr = paren_expr.solve();
-                        expr_list.push(Expression {
-                            operator: Operator::Value(paren_expr),
-                            left: None,
-                            right: None,
-                        });
+                        expr_list.push(paren_expr);
 
                     // If closing parentheses come before opening
                     // parentheses, an error is returned.
@@ -273,8 +268,9 @@ pub mod expression {
                 // using surrounding numbers into their own
                 // Expressions, and replace the previously
                 // existing Expressions with the new Expression.
-                if expr_list[i].operator == Operator::Multiplication
-                    || expr_list[i].operator == Operator::Division {
+                if (expr_list[i].operator == Operator::Multiplication
+                    || expr_list[i].operator == Operator::Division)
+                    && (expr_list[i].left == None && expr_list[i].right == None) {
                     if i < expr_list.len()-1 {
                         let new_expr = Expression {
                             operator: expr_list[i].operator.clone(),
