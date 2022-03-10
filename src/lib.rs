@@ -3,8 +3,6 @@
 /// using mathematical infix notation.
 /// 
 pub mod expression {
-    use std::io::ErrorKind;
-    use std::error::Error;
 
     ///
     /// Holds the various types of
