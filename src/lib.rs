@@ -43,25 +43,41 @@ pub mod expression {
         pub right: Option<Box<Expression>>,
     }
 
+    ///
+    /// Error returned by Expression::parse
+    /// function if the parentheses are unbalanced,
+    /// or if a closing parenthesis comes before the
+    /// first opening parenthesis.
+    /// 
     #[derive(Debug, Clone)]
     pub struct UnbalancedParentheses;
+
+    ///
+    /// Error returned by Expression::parse
+    /// if an invalid character/operator
+    /// if found within the string to be parsed.
+    /// 
     #[derive(Debug, Clone)]
     pub struct InvalidToken;
 
+    // Implementation of display for error handling
+    // with the UnbalancedParentheses error.
     impl std::fmt::Display for UnbalancedParentheses {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
             write!(f, "Invalid use of parentheses")
         }
     }
 
+    // Implementation of display for error handling
+    // with the InvalidToken error.
     impl std::fmt::Display for InvalidToken {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
             write!(f, "Invalid character in sequence")
         }
     }
 
+    // Both errors implement the standard error trait.
     impl std::error::Error for UnbalancedParentheses {}
-
     impl std::error::Error for InvalidToken {}
 
     // Implementaion block for an expression
